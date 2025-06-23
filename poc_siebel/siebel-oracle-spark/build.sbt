@@ -7,7 +7,9 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-core" % "3.5.0" % "provided",
       "org.apache.spark" %% "spark-sql" % "3.5.0" % "provided",
-      "com.oracle.database.jdbc" % "ojdbc11" % "23.7.0.0.1" % "provided" // สำคัญ: "provided"
+      "com.oracle.database.jdbc" % "ojdbc11" % "23.7.0.0.1" % "provided", // สำคัญ: "provided"
+      "com.google.cloud" % "google-cloud-secretmanager" % "2.33.0" % "provided",
+      "org.json4s" %% "json4s-native" % "4.0.7" % "provided" // หรือเวอร์ชันล่าสุด
     ),
   )
 

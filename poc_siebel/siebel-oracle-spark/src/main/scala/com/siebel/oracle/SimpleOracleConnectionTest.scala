@@ -6,6 +6,25 @@ import java.util.Properties
 import org.apache.log4j.{Logger, Level} 
 
 object SimpleOracleConnectionTest {
+  // ฟังก์ชันช่วยดึง Secret จาก Secret Manager
+  def getSecret(projectId: String, secretId: String, versionId: String = "latest"): String = {
+    var client: SecretManagerServiceClient = null
+    try {
+      client = SecretManagerServiceClient.create()
+      val secretVersionName = SecretVersionName.of(projectId, secretId, versionId)
+      val request = AccessSecretVersionRequest.newBuilder().setName(secretVersionName.toString()).build()
+      val response = client.accessSecretVersion(request)
+      response.getPayload.getData.toStringUtf8()
+    } catch {
+      case e: Exception =>
+        println(s"❌ Error accessing secret '$secretId': ${e.getMessage}")
+        e.printStackTrace()
+        throw e // Re-throw exception if secret cannot be accessed
+    } finally {
+      if (client != null) client.close()
+    }
+  }
+
   def main(args: Array[String]): Unit = {
 
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -19,8 +38,19 @@ object SimpleOracleConnectionTest {
 
     // Oracle RDS connection configuration
     val oracleUrl = sys.env("ORACLE_URL") // **บังคับอ่านจาก Environment Variable**
-    val username = sys.env("ORACLE_USER") // **บังคับอ่านจาก Environment Variable**
-    val password = sys.env("ORACLE_PASSWORD") // **บังคับอ่านจาก Environment Variable**
+    // val username = sys.env("ORACLE_USER") // **บังคับอ่านจาก Environment Variable**
+    // val password = sys.env("ORACLE_PASSWORD") // **บังคับอ่านจาก Environment Variable**
+
+    // ดึง JSON Secret String
+    val connectionJsonString = getSecret(gcpProjectId, "sieble-connection") // ชื่อ Secret ที่คุณตั้งไว้
+    
+    // Parse JSON String
+    implicit val formats: DefaultFormats.type = DefaultFormats // จำเป็นสำหรับ json4s
+    val connectionDetails = parse(connectionJsonString).extract[Map[String, String]] // Parse เป็น Map
+
+    // ดึง user และ pass จาก Map
+    val username = connectionDetails("user")
+    val password = connectionDetails("pass")
 
     // **DEBUG Print (จะแสดงใน Log Output)**
     println(s"DEBUG: Actual ORACLE_URL from env: $oracleUrl")
